@@ -1,0 +1,40 @@
+name: Branch Name
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-branch:
+    name: Branch Naming Convention
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name format
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          pattern='^(feature|fix|docs|test|chore|refactor|perf|ci)/.+'
+          if ! echo "$BRANCH" | grep -qE "$pattern"; then
+            echo "❌ Branch name does not follow the naming convention."
+            echo ""
+            echo "Expected: <type>/<description>"
+            echo ""
+            echo "Allowed prefixes:"
+            echo "  feature/  — new feature"
+            echo "  fix/      — bug fix"
+            echo "  docs/     — documentation"
+            echo "  test/     — tests"
+            echo "  chore/    — build, config, tooling"
+            echo "  refactor/ — code refactoring"
+            echo "  perf/     — performance improvement"
+            echo "  ci/       — CI/CD changes"
+            echo ""
+            echo "Examples:"
+            echo "  feature/gzip-log-support"
+            echo "  fix/null-pointer-in-parser"
+            echo "  docs/korean-readme"
+            echo ""
+            echo "Your branch: $BRANCH"
+            exit 1
+          fi
+          echo "✅ Branch name is valid: $BRANCH"
