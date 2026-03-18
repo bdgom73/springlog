@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build binaries
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          mkdir -p dist
+
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X springlog/cli.Version=${VERSION} -s -w" \
+            -o dist/springlog-${VERSION}-windows-amd64.exe ./cmd/springlog
+
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X springlog/cli.Version=${VERSION} -s -w" \
+            -o dist/springlog-${VERSION}-darwin-amd64 ./cmd/springlog
+
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X springlog/cli.Version=${VERSION} -s -w" \
+            -o dist/springlog-${VERSION}-darwin-arm64 ./cmd/springlog
+
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X springlog/cli.Version=${VERSION} -s -w" \
+            -o dist/springlog-${VERSION}-linux-amd64 ./cmd/springlog
+
+          GOOS=linux GOARCH=arm64 go build -ldflags "-X springlog/cli.Version=${VERSION} -s -w" \
+            -o dist/springlog-${VERSION}-linux-arm64 ./cmd/springlog
+
+          # Create checksums
+          cd dist && sha256sum * > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false

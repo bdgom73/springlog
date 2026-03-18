@@ -1,0 +1,55 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: input
+    id: version
+    attributes:
+      label: springlog version
+      placeholder: e.g. v1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command used
+      placeholder: springlog analyze ./logs/ -l ERROR
+      render: shell
+
+  - type: textarea
+    id: log_sample
+    attributes:
+      label: Log sample (sanitized)
+      description: A few lines of the log file that caused the issue
+      render: text
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Actual output / error
+      render: text
