@@ -55,7 +55,7 @@ func (t *FileTailer) Tail(ctx context.Context, path string) (<-chan *logentry.Lo
 		defer ticker.Stop()
 
 		readNew := func() {
-			f.Seek(offset, io.SeekStart)
+			_, _ = f.Seek(offset, io.SeekStart)
 			format, reader, _ := detector.Detect(f)
 			var p parser.Parser
 			switch format {
@@ -106,7 +106,7 @@ func (t *FileTailer) Tail(ctx context.Context, path string) (<-chan *logentry.Lo
 					}
 					f = newF
 					offset = newOffset
-					watcher.Add(path)
+					_ = watcher.Add(path)
 				}
 
 			case err, ok := <-watcher.Errors:
