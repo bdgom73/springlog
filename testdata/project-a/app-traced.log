@@ -1,0 +1,24 @@
+2024-01-15 08:01:12.001 INFO  12345 --- [main] c.example.Application : Starting Application v2.3.1 using Java 17.0.5
+2024-01-15 08:01:17.889 INFO  12345 --- [main] o.s.b.w.e.t.TomcatWebServer : Tomcat started on port(s): 8080 (http) with context path ''
+2024-01-15 08:01:17.902 INFO  12345 --- [main] c.example.Application : Started Application in 5.901 seconds (JVM running for 6.342)
+2024-01-15 08:01:17.920 INFO  12345 --- [main] c.example.Application : The following 1 profiles are active: prod
+2024-01-15 08:01:17.950 INFO  12345 --- [main] c.example.config.DataSourceConfig : 142 beans loaded in application context
+2024-01-15 09:10:01.001 INFO  12345 --- [http-nio-8080-exec-1] [traceId=4bf92f3577b34da6a3ce929d0e0e4736 spanId=00f067aa0ba902b7] c.example.controller.OrderController : POST /api/orders received
+2024-01-15 09:10:01.110 INFO  12345 --- [http-nio-8080-exec-1] [traceId=4bf92f3577b34da6a3ce929d0e0e4736 spanId=00f067aa0ba902b7] c.example.service.OrderService : Validating order for userId=1001
+2024-01-15 09:10:01.220 INFO  12345 --- [http-nio-8080-exec-1] [traceId=4bf92f3577b34da6a3ce929d0e0e4736 spanId=00f067aa0ba902b7] c.example.service.PaymentService : Processing payment for orderId=ORD-9991 completed in 110ms
+2024-01-15 09:10:01.330 INFO  12345 --- [http-nio-8080-exec-1] [traceId=4bf92f3577b34da6a3ce929d0e0e4736 spanId=00f067aa0ba902b7] c.example.controller.OrderController : POST /api/orders completed in 329ms — status=201
+2024-01-15 09:15:05.001 INFO  12345 --- [http-nio-8080-exec-3] [traceId=a3ce929d0e0e4736b34da6a4bf92f357 spanId=11a078cc0cb903c8] c.example.controller.UserController : GET /api/users/1042
+2024-01-15 09:15:05.340 INFO  12345 --- [http-nio-8080-exec-3] [traceId=a3ce929d0e0e4736b34da6a4bf92f357 spanId=11a078cc0cb903c8] c.example.service.UserService : User loaded, took 339ms
+2024-01-15 09:33:11.001 WARN  12345 --- [http-nio-8080-exec-5] [traceId=b34da6a3ce929d0e4bf92f3577b30e0e spanId=22b089dd1dc014d9] c.example.controller.OrderController : POST /api/orders received
+2024-01-15 09:33:11.120 INFO  12345 --- [http-nio-8080-exec-5] [traceId=b34da6a3ce929d0e4bf92f3577b30e0e spanId=22b089dd1dc014d9] c.example.service.OrderService : Validating order for userId=2201
+2024-01-15 09:33:12.560 ERROR 12345 --- [http-nio-8080-exec-5] [traceId=b34da6a3ce929d0e4bf92f3577b30e0e spanId=22b089dd1dc014d9] c.example.service.PaymentService : Payment gateway timeout after 1441ms for orderId=ORD-9992
+java.net.SocketTimeoutException: Read timed out after 1441ms
+	at c.example.gateway.PaymentGateway.charge(PaymentGateway.java:87)
+	at c.example.service.PaymentService.processPayment(PaymentService.java:134)
+	... 28 more
+2024-01-15 09:33:12.565 ERROR 12345 --- [http-nio-8080-exec-5] [traceId=b34da6a3ce929d0e4bf92f3577b30e0e spanId=22b089dd1dc014d9] c.example.controller.OrderController : POST /api/orders failed in 1564ms — status=500
+2024-01-15 10:22:33.001 INFO  12345 --- [http-nio-8080-exec-8] [traceId=c929d0e0e47364bf92f3577b34da6a3c spanId=33c190ee2ed125ea] c.example.controller.ReportController : GET /api/reports/daily
+2024-01-15 10:22:36.801 INFO  12345 --- [http-nio-8080-exec-8] [traceId=c929d0e0e47364bf92f3577b34da6a3c spanId=33c190ee2ed125ea] c.example.service.ReportService : Report generated, took 3800ms
+2024-01-15 10:22:36.802 WARN  12345 --- [http-nio-8080-exec-8] [traceId=c929d0e0e47364bf92f3577b34da6a3c spanId=33c190ee2ed125ea] c.example.controller.ReportController : GET /api/reports/daily completed in 3801ms — slow request
+2024-01-15 14:05:11.001 INFO  12345 --- [http-nio-8080-exec-2] [traceId=d0e0e4736b34da6a4bf92f3577b3ce92 spanId=44d201ff3fe236fb] c.example.controller.SearchController : GET /api/search?q=laptop
+2024-01-15 14:05:11.890 INFO  12345 --- [http-nio-8080-exec-2] [traceId=d0e0e4736b34da6a4bf92f3577b3ce92 spanId=44d201ff3fe236fb] c.example.service.SearchService : Search completed in 889ms — 42 results

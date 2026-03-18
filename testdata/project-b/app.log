@@ -1,0 +1,24 @@
+2024-01-15 07:55:00.001 INFO  23456 --- [main] c.example.BatchApplication : Starting BatchApplication v1.5.0
+2024-01-15 07:55:03.220 INFO  23456 --- [main] c.example.BatchApplication : Started in 3.219 seconds
+2024-01-15 08:00:00.001 INFO  23456 --- [batch-1] c.example.batch.OrderBatchJob : Starting order sync job, fetchSize=500
+2024-01-15 08:00:12.441 INFO  23456 --- [batch-1] c.example.batch.OrderBatchJob : Chunk 1/20 processed: 500 records
+2024-01-15 08:01:10.772 WARN  23456 --- [batch-1] c.example.batch.OrderBatchJob : Slow chunk detected: chunk 8 took 4231ms
+2024-01-15 08:02:44.001 INFO  23456 --- [batch-1] c.example.batch.OrderBatchJob : Order sync completed: 10000 records in 164s
+2024-01-15 09:00:00.001 INFO  23456 --- [batch-2] c.example.batch.InventoryJob : Starting inventory reconciliation
+2024-01-15 09:00:05.112 ERROR 23456 --- [batch-2] c.example.batch.InventoryJob : Failed to fetch inventory from ERP: timeout after 5000ms
+java.net.SocketTimeoutException: Read timed out
+	at java.net.SocketInputStream.socketRead0(Native Method)
+	at c.example.client.ErpClient.getInventory(ErpClient.java:112)
+	at c.example.batch.InventoryJob.execute(InventoryJob.java:88)
+	... 15 more
+2024-01-15 09:00:05.220 ERROR 23456 --- [batch-2] c.example.batch.InventoryJob : Inventory job FAILED, scheduling retry in 30s
+2024-01-15 09:00:35.001 INFO  23456 --- [batch-2] c.example.batch.InventoryJob : Retrying inventory reconciliation (attempt 2/3)
+2024-01-15 09:00:48.441 INFO  23456 --- [batch-2] c.example.batch.InventoryJob : Inventory reconciliation completed: 3200 items
+2024-01-15 10:00:00.001 WARN  23456 --- [batch-3] c.example.batch.NotificationJob : Email provider rate limit reached, throttling to 10 req/s
+2024-01-15 10:00:00.220 INFO  23456 --- [batch-3] c.example.batch.NotificationJob : Sent 2450 push notifications
+2024-01-15 12:00:00.001 ERROR 23456 --- [batch-4] c.example.batch.ReportExportJob : S3 upload failed for report-2024-01-15.pdf
+com.amazonaws.AmazonServiceException: Access Denied (Service: Amazon S3; Status Code: 403)
+	at c.example.storage.S3Storage.upload(S3Storage.java:67)
+	at c.example.batch.ReportExportJob.exportPDF(ReportExportJob.java:45)
+	... 22 more
+2024-01-15 12:00:00.330 WARN  23456 --- [batch-4] c.example.batch.ReportExportJob : Falling back to local storage for report
