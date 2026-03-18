@@ -38,8 +38,7 @@ var (
 	styleFilterKey  = lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Bold(true)
 	styleFilterVal  = lipgloss.NewStyle().Foreground(lipgloss.Color("255")).Background(lipgloss.Color("236")).Padding(0, 1)
 	styleFilterValActive = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("39")).Padding(0, 1)
-	styleKey        = lipgloss.NewStyle().Foreground(lipgloss.Color("244")).Background(lipgloss.Color("236")).Padding(0, 1)
-	styleSelected   = lipgloss.NewStyle().Background(lipgloss.Color("238")).Foreground(lipgloss.Color("255"))
+	styleKey = lipgloss.NewStyle().Foreground(lipgloss.Color("244")).Background(lipgloss.Color("236")).Padding(0, 1)
 )
 
 // ── Filter state ─────────────────────────────────────────────────────────────

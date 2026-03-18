@@ -1,0 +1,25 @@
+linters:
+  enable:
+    - errcheck
+    - unused
+    - govet
+    - staticcheck
+
+linters-settings:
+  errcheck:
+    exclude-functions:
+      # tablewriter output errors — writer is os.Stdout/os.Stderr, non-recoverable
+      - (github.com/olekukonko/tablewriter.Table).Append
+      - (github.com/olekukonko/tablewriter.Table).Render
+      # Sscanf on a controlled format string; caller checks the scanned value
+      - fmt.Sscanf
+      # Seek inside tail readNew — offset is reset from SeekCurrent immediately after
+      - (*os.File).Seek
+      # Re-watching after log rotation; failure is non-fatal (watcher still active)
+      - (*github.com/fsnotify/fsnotify.Watcher).Add
+
+issues:
+  exclude-rules:
+    # Ignore all errcheck issues in test files
+    - path: _test\.go
+      linters: [errcheck]

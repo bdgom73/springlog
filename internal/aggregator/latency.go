@@ -60,11 +60,10 @@ type StartupStats struct {
 }
 
 var (
-	startupPattern  = regexp.MustCompile(`Started\s+\S+\s+in\s+([\d.]+)\s+seconds`)
-	portPattern     = regexp.MustCompile(`Tomcat started on port\(?s?\)?[:\s]+(\d+)`)
-	profilePattern  = regexp.MustCompile(`(?i)active profile[s]?[:\s]+([^\n]+)`)
+	startupPattern   = regexp.MustCompile(`Started\s+\S+\s+in\s+([\d.]+)\s+seconds`)
+	portPattern      = regexp.MustCompile(`Tomcat started on port\(?s?\)?[:\s]+(\d+)`)
+	profilePattern   = regexp.MustCompile(`(?i)active profile[s]?[:\s]+([^\n]+)`)
 	beanCountPattern = regexp.MustCompile(`(\d+)\s+beans`)
-	sqlParamPattern  = regexp.MustCompile(`'[^']*'|\b\d+\b`)
 )
 
 const defaultSlowThresholdMs = 1000.0
@@ -161,7 +160,3 @@ func analyzeStartup(entries []*logentry.LogEntry) *StartupStats {
 	return stats
 }
 
-// normalizeSQL removes literal values from SQL for grouping.
-func normalizeSQL(sql string) string {
-	return strings.TrimSpace(sqlParamPattern.ReplaceAllString(sql, "?"))
-}
