@@ -35,17 +35,6 @@ testdata/          # Sample log files for testing
 3. Register in `cli/analyze.go` and `cli/stats.go`
 4. Add sample files to `testdata/`
 
-## Commit Convention
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: add support for gzip compressed logs
-fix: handle empty log files without panic
-docs: update README with new flags
-test: add fuzz tests for text parser
-```
-
 ## Testing
 
 ```bash
