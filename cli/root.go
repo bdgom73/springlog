@@ -12,6 +12,9 @@ import (
 	"springlog/pkg/logentry"
 )
 
+// Version is set at build time via -ldflags "-X springlog/cli.Version=vX.Y.Z".
+var Version = "dev"
+
 // GlobalFlags holds all flags shared across subcommands.
 type GlobalFlags struct {
 	Output       string
