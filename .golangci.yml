@@ -7,19 +7,21 @@ linters:
 
 linters-settings:
   errcheck:
+    # fmt.Sscanf: format is a controlled literal; caller uses the scanned value directly
+    # os.File.Seek: offset is immediately re-read via SeekCurrent after the call
+    # fsnotify.Watcher.Add: re-watch after log rotation; watcher remains active on failure
     exclude-functions:
-      # tablewriter output errors — writer is os.Stdout/os.Stderr, non-recoverable
-      - (github.com/olekukonko/tablewriter.Table).Append
-      - (github.com/olekukonko/tablewriter.Table).Render
-      # Sscanf on a controlled format string; caller checks the scanned value
       - fmt.Sscanf
-      # Seek inside tail readNew — offset is reset from SeekCurrent immediately after
-      - (*os.File).Seek
-      # Re-watching after log rotation; failure is non-fatal (watcher still active)
-      - (*github.com/fsnotify/fsnotify.Watcher).Add
+      - (os.File).Seek
+      - (github.com/fsnotify/fsnotify.Watcher).Add
 
 issues:
   exclude-rules:
+    # tablewriter Append/Render write to an io.Writer (stdout/stderr);
+    # errors are non-recoverable and intentionally ignored here.
+    - linters: [errcheck]
+      text: "Error return value of `.*\\.(Append|Render)` is not checked"
+
     # Ignore all errcheck issues in test files
     - path: _test\.go
       linters: [errcheck]
