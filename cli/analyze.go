@@ -3,12 +3,12 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
-
-	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"springlog/internal/detector"
@@ -211,51 +211,98 @@ type logFile struct {
 
 // collectLogFiles collects all log files under a path.
 // If allProjects is true, each immediate subdirectory becomes a project.
+// Log files directly in root are always included under the root directory name.
 func collectLogFiles(root string, allProjects bool) ([]logFile, error) {
 	info, err := os.Stat(root)
 	if err != nil {
 		return nil, err
 	}
 
+	// Single file given directly
 	if !info.IsDir() {
 		return []logFile{{Path: root, Project: filepath.Base(filepath.Dir(root))}}, nil
 	}
 
 	var files []logFile
+	rootProject := filepath.Base(root)
 
 	if allProjects {
-		// Each subdirectory is a project
 		entries, err := os.ReadDir(root)
 		if err != nil {
 			return nil, err
 		}
 		for _, e := range entries {
-			if !e.IsDir() {
-				continue
+			if e.IsDir() {
+				// Each subdirectory is its own project
+				projectName := e.Name()
+				projectPath := filepath.Join(root, projectName)
+				lfs, err := walkLogFiles(projectPath, projectName)
+				if err != nil {
+					return nil, err
+				}
+				files = append(files, lfs...)
+			} else {
+				// Files directly in root belong to the root project
+				path := filepath.Join(root, e.Name())
+				if isLogFile(path) {
+					files = append(files, logFile{Path: path, Project: rootProject})
+				}
 			}
-			projectName := e.Name()
-			projectPath := filepath.Join(root, projectName)
-			lfs, err := walkLogFiles(projectPath, projectName)
-			if err != nil {
-				return nil, err
-			}
-			files = append(files, lfs...)
 		}
 	} else {
-		project := filepath.Base(root)
-		lfs, err := walkLogFiles(root, project)
+		lfs, err := walkLogFiles(root, rootProject)
 		if err != nil {
 			return nil, err
 		}
 		files = append(files, lfs...)
 	}
 
-	// Sort by path for deterministic order
+	// Remove duplicates: if both app.log and app.json exist with the same base
+	// name in the same directory, prefer JSON (more structured data).
+	files = deduplicateByBaseName(files)
+
+	// Sort by file modification time (oldest first) so logs are processed
+	// in chronological order regardless of naming convention.
 	sort.Slice(files, func(i, j int) bool {
-		return files[i].Path < files[j].Path
+		si, ei := os.Stat(files[i].Path)
+		sj, ej := os.Stat(files[j].Path)
+		if ei != nil || ej != nil {
+			return files[i].Path < files[j].Path
+		}
+		return si.ModTime().Before(sj.ModTime())
 	})
 
 	return files, nil
+}
+
+// deduplicateByBaseName removes .log files when a .json file with the same
+// base name exists in the same directory (avoids double-counting the same
+// application's logs written in two formats simultaneously).
+func deduplicateByBaseName(files []logFile) []logFile {
+	type key struct{ dir, base string }
+	jsonExists := make(map[key]bool)
+
+	for _, f := range files {
+		if strings.ToLower(filepath.Ext(f.Path)) == ".json" {
+			dir := filepath.Dir(f.Path)
+			base := strings.TrimSuffix(filepath.Base(f.Path), filepath.Ext(f.Path))
+			jsonExists[key{dir, base}] = true
+		}
+	}
+
+	result := files[:0]
+	for _, f := range files {
+		ext := strings.ToLower(filepath.Ext(f.Path))
+		if ext == ".log" {
+			dir := filepath.Dir(f.Path)
+			base := strings.TrimSuffix(filepath.Base(f.Path), filepath.Ext(f.Path))
+			if jsonExists[key{dir, base}] {
+				continue // skip .log — JSON twin exists
+			}
+		}
+		result = append(result, f)
+	}
+	return result
 }
 
 func walkLogFiles(root, project string) ([]logFile, error) {

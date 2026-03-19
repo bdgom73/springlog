@@ -15,10 +15,11 @@ import (
 
 // Spring Boot log patterns:
 // Classic:  2024-01-15 10:23:45.123 ERROR 12345 --- [main] c.example.MyClass : msg
+// No ms:    2024-01-15 10:23:45 ERROR 12345 --- [main] c.example.MyClass : msg
 // SB3+MDC:  2024-01-15T10:23:45.123+09:00  INFO 12345 --- [app] [t=abc s=def] c.e.MyClass : msg
 // Sleuth:   2024-01-15 10:23:45.123 ERROR 12345 --- [main] [traceId=abc,spanId=def] c.e.MyClass : msg
 var springBootPattern = regexp.MustCompile(
-	`^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.,]\d{3}(?:[+-]\d{2}:?\d{2}|Z)?)\s+` +
+	`^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?(?:[+-]\d{2}:?\d{2}|Z)?)\s+` +
 		`(\w+)\s+(\d+)\s+---\s+\[([^\]]*)\]\s+` +
 		`(?:\[([^\]]*)\]\s+)?` + // optional MDC/trace bracket (SB3 style)
 		`(\S+)\s+:\s+(.*)$`,
@@ -39,9 +40,12 @@ var durationPattern = regexp.MustCompile(
 var timeFormats = []string{
 	"2006-01-02 15:04:05.000",
 	"2006-01-02 15:04:05,000",
+	"2006-01-02 15:04:05",
 	"2006-01-02T15:04:05.000",
 	"2006-01-02T15:04:05.000Z07:00",
 	"2006-01-02T15:04:05.000-07:00",
+	"2006-01-02T15:04:05Z07:00",
+	"2006-01-02T15:04:05",
 }
 
 type TextParser struct{}
