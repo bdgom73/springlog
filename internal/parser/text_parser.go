@@ -18,11 +18,20 @@ import (
 // No ms:    2024-01-15 10:23:45 ERROR 12345 --- [main] c.example.MyClass : msg
 // SB3+MDC:  2024-01-15T10:23:45.123+09:00  INFO 12345 --- [app] [t=abc s=def] c.e.MyClass : msg
 // Sleuth:   2024-01-15 10:23:45.123 ERROR 12345 --- [main] [traceId=abc,spanId=def] c.e.MyClass : msg
+// p6spy:    2024-01-15 10:23:45 1234567890 [thread] INFO  jdbc.sqltiming - SELECT ...
 var springBootPattern = regexp.MustCompile(
 	`^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?(?:[+-]\d{2}:?\d{2}|Z)?)\s+` +
 		`(\w+)\s+(\d+)\s+---\s+\[([^\]]*)\]\s+` +
 		`(?:\[([^\]]*)\]\s+)?` + // optional MDC/trace bracket (SB3 style)
 		`(\S+)\s+:\s+(.*)$`,
+)
+
+// p6spy / jdbc.sqltiming pattern:
+// 2024-01-15 10:23:45 1234567890 [http-nio-8080-exec-1] INFO  jdbc.sqltiming - SELECT ...
+var p6spyPattern = regexp.MustCompile(
+	`^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?(?:[+-]\d{2}:?\d{2}|Z)?)\s+` +
+		`(\d+)\s+\[([^\]]*)\]\s+(\w+)\s+` +
+		`(\S+)\s+-\s+(.*)$`,
 )
 
 var stackContinuationPattern = regexp.MustCompile(
@@ -32,9 +41,9 @@ var stackContinuationPattern = regexp.MustCompile(
 // MDC patterns: [traceId=abc123 spanId=def456] or [key=val, key2=val2]
 var mdcPattern = regexp.MustCompile(`(\w+)=([^\s,\]]+)`)
 
-// Duration pattern: "completed in 342ms", "took 1.2s", "executed in 500 ms"
+// Duration pattern: "completed in 342ms", "took 1.2s", "executed in 500 ms", "executed in 1 msec"
 var durationPattern = regexp.MustCompile(
-	`(?:in|took|elapsed|duration|latency)[:\s]+(\d+(?:\.\d+)?)\s*(ms|s|millis|seconds|milliseconds)`,
+	`(?:in|took|elapsed|duration|latency)[:\s]+(\d+(?:\.\d+)?)\s*(ms|msec|s|millis|seconds|milliseconds)`,
 )
 
 var timeFormats = []string{
@@ -44,8 +53,9 @@ var timeFormats = []string{
 	"2006-01-02T15:04:05.000",
 	"2006-01-02T15:04:05.000Z07:00",
 	"2006-01-02T15:04:05.000-07:00",
-	"2006-01-02T15:04:05Z07:00",
 	"2006-01-02T15:04:05",
+	"2006-01-02T15:04:05Z07:00",
+	"2006-01-02T15:04:05-07:00",
 }
 
 type TextParser struct{}
@@ -127,6 +137,31 @@ func (p *TextParser) Parse(ctx context.Context, r io.Reader, source string) (<-c
 				// Extract duration from message
 				entry.DurationMs = extractDuration(message)
 
+				current = entry
+			} else if m := p6spyPattern.FindStringSubmatch(line); m != nil {
+				// p6spy format: timestamp PID [thread] LEVEL logger - message
+				flush()
+
+				ts := parseTime(m[1])
+				pid, _ := strconv.Atoi(m[2])
+				thread := m[3]
+				level := logentry.ParseLevel(m[4])
+				logger := m[5]
+				message := m[6]
+
+				entry := &logentry.LogEntry{
+					Timestamp:  ts,
+					Level:      level,
+					PID:        pid,
+					Thread:     thread,
+					Logger:     logger,
+					Message:    message,
+					Raw:        line,
+					LineNumber: lineNum,
+					SourceFile: source,
+				}
+
+				entry.DurationMs = extractDuration(message)
 				current = entry
 			} else if current != nil && isStackLine(line) {
 				current.StackTrace = append(current.StackTrace, line)

@@ -82,13 +82,15 @@ type Aggregator struct {
 	errorGroups    map[string]*ErrorGroup
 	exceptionStats map[string]*ExceptionStat
 	loggerStats    map[string]*LoggerStat
+	bucketMap      map[int64]*TimeBucket // keyed by bucket start unix
 	bucketSize     time.Duration
 	maxExamples    int
 	maxGroups      int
 
 	// 3단계
-	durations      []float64
-	allEntries     []*logentry.LogEntry // for startup/latency analysis
+	durations       []float64
+	slowRequests    []*logentry.LogEntry // entries exceeding slow threshold
+	startupEntries  []*logentry.LogEntry // only first N entries for startup analysis
 	slowThresholdMs float64
 }
 
@@ -104,6 +106,7 @@ func New(bucketSize time.Duration) *Aggregator {
 		errorGroups:     make(map[string]*ErrorGroup),
 		exceptionStats:  make(map[string]*ExceptionStat),
 		loggerStats:     make(map[string]*LoggerStat),
+		bucketMap:       make(map[int64]*TimeBucket),
 		bucketSize:      bucketSize,
 		maxExamples:     3,
 		maxGroups:       100,
@@ -145,25 +148,32 @@ func (a *Aggregator) Ingest(e *logentry.LogEntry) {
 	// 3단계: latency & startup
 	if e.DurationMs != nil {
 		a.durations = append(a.durations, *e.DurationMs)
+		if *e.DurationMs >= a.slowThresholdMs && len(a.slowRequests) < 100 {
+			a.slowRequests = append(a.slowRequests, e)
+		}
 	}
-	a.allEntries = append(a.allEntries, e)
+	// Only keep early entries for startup analysis (first 500)
+	if len(a.startupEntries) < 500 {
+		a.startupEntries = append(a.startupEntries, e)
+	}
 }
 
 func (a *Aggregator) ingestBucket(e *logentry.LogEntry) {
 	bucketStart := e.Timestamp.Truncate(a.bucketSize)
-	for _, b := range a.stats.TimeHistogram {
-		if b.Start.Equal(bucketStart) {
-			b.Count++
-			b.ByLevel[e.Level]++
-			return
-		}
+	key := bucketStart.Unix()
+	if b, ok := a.bucketMap[key]; ok {
+		b.Count++
+		b.ByLevel[e.Level]++
+		return
 	}
-	a.stats.TimeHistogram = append(a.stats.TimeHistogram, &TimeBucket{
+	b := &TimeBucket{
 		Start:   bucketStart,
 		End:     bucketStart.Add(a.bucketSize),
 		Count:   1,
 		ByLevel: map[logentry.Level]int64{e.Level: 1},
-	})
+	}
+	a.bucketMap[key] = b
+	a.stats.TimeHistogram = append(a.stats.TimeHistogram, b)
 }
 
 func (a *Aggregator) ingestErrorGroup(e *logentry.LogEntry) {
@@ -314,10 +324,10 @@ func (a *Aggregator) Finalize(topN int) *Stats {
 	a.stats.Spikes = detectSpikes(a.stats.TimeHistogram)
 
 	// 3단계: latency
-	a.stats.Latency = computeLatencyStats(a.durations, a.slowThresholdMs, a.allEntries)
+	a.stats.Latency = computeLatencyStats(a.durations, a.slowThresholdMs, a.slowRequests)
 
 	// 3단계: startup
-	a.stats.Startup = analyzeStartup(a.allEntries)
+	a.stats.Startup = analyzeStartup(a.startupEntries)
 
 	return a.stats
 }
