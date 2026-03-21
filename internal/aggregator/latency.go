@@ -70,12 +70,9 @@ const defaultSlowThresholdMs = 1000.0
 
 // computeLatencyStats computes percentiles from duration values.
 // slowEntries contains pre-filtered entries that exceed the slow threshold.
-func computeLatencyStats(durations []float64, slowThresholdMs float64, slowEntries []*logentry.LogEntry) *LatencyStats {
+func computeLatencyStats(durations []float64, slowEntries []*logentry.LogEntry) *LatencyStats {
 	if len(durations) == 0 {
 		return nil
-	}
-	if slowThresholdMs <= 0 {
-		slowThresholdMs = defaultSlowThresholdMs
 	}
 
 	sorted := make([]float64, len(durations))

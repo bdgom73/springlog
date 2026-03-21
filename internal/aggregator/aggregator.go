@@ -324,7 +324,7 @@ func (a *Aggregator) Finalize(topN int) *Stats {
 	a.stats.Spikes = detectSpikes(a.stats.TimeHistogram)
 
 	// 3단계: latency
-	a.stats.Latency = computeLatencyStats(a.durations, a.slowThresholdMs, a.slowRequests)
+	a.stats.Latency = computeLatencyStats(a.durations, a.slowRequests)
 
 	// 3단계: startup
 	a.stats.Startup = analyzeStartup(a.startupEntries)
