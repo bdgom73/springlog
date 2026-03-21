@@ -227,13 +227,13 @@ func collectLogFiles(root string, allProjects bool) ([]logFile, error) {
 	rootProject := filepath.Base(root)
 
 	if allProjects {
+		// Each subdirectory is a project; also collect loose files in root
 		entries, err := os.ReadDir(root)
 		if err != nil {
 			return nil, err
 		}
 		for _, e := range entries {
 			if e.IsDir() {
-				// Each subdirectory is its own project
 				projectName := e.Name()
 				projectPath := filepath.Join(root, projectName)
 				lfs, err := walkLogFiles(projectPath, projectName)
@@ -242,10 +242,13 @@ func collectLogFiles(root string, allProjects bool) ([]logFile, error) {
 				}
 				files = append(files, lfs...)
 			} else {
-				// Files directly in root belong to the root project
-				path := filepath.Join(root, e.Name())
-				if isLogFile(path) {
-					files = append(files, logFile{Path: path, Project: rootProject})
+				// Loose log files directly in root → project name from filename
+				p := filepath.Join(root, e.Name())
+				if isLogFile(p) {
+					name := e.Name()
+					ext := filepath.Ext(name)
+					project := strings.TrimSuffix(name, ext)
+					files = append(files, logFile{Path: p, Project: project})
 				}
 			}
 		}

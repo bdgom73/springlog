@@ -27,6 +27,7 @@ func (f Format) String() string {
 	}
 }
 
+// Matches both standard Spring Boot and p6spy-style text log lines
 var springBootPattern = regexp.MustCompile(
 	`^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}`,
 )

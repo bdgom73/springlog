@@ -113,6 +113,10 @@ func (p *JSONParser) mapEntry(raw map[string]any, line, source string, lineNum i
 	if ts := p.getString(raw, p.FieldMap.Timestamp); ts != "" {
 		entry.Timestamp = parseJSONTime(ts)
 		markKnown(knownKeys, p.FieldMap.Timestamp)
+	} else if t, ok := parseInstantField(raw); ok {
+		// Log4j2 JSON Layout: {"instant":{"epochSecond":1234567890,"nanoOfSecond":123456789}}
+		entry.Timestamp = t
+		knownKeys["instant"] = true
 	}
 	if lvl := p.getString(raw, p.FieldMap.Level); lvl != "" {
 		entry.Level = logentry.ParseLevel(lvl)
@@ -129,6 +133,15 @@ func (p *JSONParser) mapEntry(raw map[string]any, line, source string, lineNum i
 	if thread := p.getString(raw, p.FieldMap.Thread); thread != "" {
 		entry.Thread = thread
 		markKnown(knownKeys, p.FieldMap.Thread)
+	} else {
+		// Some JSON layouts use numeric threadId — try as number fallback
+		for _, key := range p.FieldMap.Thread {
+			if v, ok := raw[key]; ok {
+				entry.Thread = fmt.Sprintf("%v", v)
+				knownKeys[key] = true
+				break
+			}
+		}
 	}
 
 	// Trace & Span
@@ -235,4 +248,26 @@ func parseJSONTime(s string) time.Time {
 		}
 	}
 	return time.Time{}
+}
+
+// parseInstantField handles Log4j2 JSON Layout instant objects:
+// {"instant":{"epochSecond":1234567890,"nanoOfSecond":123456789}}
+func parseInstantField(raw map[string]any) (time.Time, bool) {
+	inst, ok := raw["instant"]
+	if !ok {
+		return time.Time{}, false
+	}
+	instMap, ok := inst.(map[string]any)
+	if !ok {
+		return time.Time{}, false
+	}
+	epochSec, ok := toFloat64(instMap["epochSecond"])
+	if !ok {
+		return time.Time{}, false
+	}
+	var nanos int64
+	if n, ok := toFloat64(instMap["nanoOfSecond"]); ok {
+		nanos = int64(n)
+	}
+	return time.Unix(int64(epochSec), nanos), true
 }

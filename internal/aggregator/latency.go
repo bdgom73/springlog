@@ -69,12 +69,10 @@ var (
 const defaultSlowThresholdMs = 1000.0
 
 // computeLatencyStats computes percentiles from duration values.
-func computeLatencyStats(durations []float64, slowThresholdMs float64, entries []*logentry.LogEntry) *LatencyStats {
+// slowEntries contains pre-filtered entries that exceed the slow threshold.
+func computeLatencyStats(durations []float64, slowEntries []*logentry.LogEntry) *LatencyStats {
 	if len(durations) == 0 {
 		return nil
-	}
-	if slowThresholdMs <= 0 {
-		slowThresholdMs = defaultSlowThresholdMs
 	}
 
 	sorted := make([]float64, len(durations))
@@ -96,20 +94,21 @@ func computeLatencyStats(durations []float64, slowThresholdMs float64, entries [
 		P99:   percentile(sorted, 99),
 	}
 
-	for _, e := range entries {
-		if e.DurationMs != nil && *e.DurationMs >= slowThresholdMs {
-			ts := ""
-			if !e.Timestamp.IsZero() {
-				ts = e.Timestamp.Format("2006-01-02 15:04:05")
-			}
-			stats.SlowRequests = append(stats.SlowRequests, &SlowRequest{
-				DurationMs: *e.DurationMs,
-				Message:    e.Message,
-				Logger:     e.Logger,
-				Timestamp:  ts,
-				Project:    e.Project,
-			})
+	for _, e := range slowEntries {
+		if e.DurationMs == nil {
+			continue
 		}
+		ts := ""
+		if !e.Timestamp.IsZero() {
+			ts = e.Timestamp.Format("2006-01-02 15:04:05")
+		}
+		stats.SlowRequests = append(stats.SlowRequests, &SlowRequest{
+			DurationMs: *e.DurationMs,
+			Message:    e.Message,
+			Logger:     e.Logger,
+			Timestamp:  ts,
+			Project:    e.Project,
+		})
 	}
 	sort.Slice(stats.SlowRequests, func(i, j int) bool {
 		return stats.SlowRequests[i].DurationMs > stats.SlowRequests[j].DurationMs
