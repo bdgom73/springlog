@@ -132,6 +132,8 @@ func buildRendererOptions() renderer.Options {
 }
 
 // parseTimeRange parses --from and --to flags into time.Time values.
+// For --to, date-only inputs (e.g. "2026-03-15", "today", "yesterday") are
+// treated as end-of-day so the full day is included in the range.
 func parseTimeRange(from, to string) (time.Time, time.Time, error) {
 	var start, end time.Time
 	var err error
@@ -143,13 +145,37 @@ func parseTimeRange(from, to string) (time.Time, time.Time, error) {
 		}
 	}
 	if to != "" {
-		end, err = parseTime(to)
+		end, err = parseEndTime(to)
 		if err != nil {
 			return time.Time{}, time.Time{}, fmt.Errorf("invalid --to value %q: %w", to, err)
 		}
 	}
 
 	return start, end, nil
+}
+
+// isDateOnly reports whether s is a date-only string (no time component).
+func isDateOnly(s string) bool {
+	s = strings.ToLower(s)
+	if s == "today" || s == "yesterday" {
+		return true
+	}
+	_, err := time.ParseInLocation("2006-01-02", s, time.Local)
+	return err == nil
+}
+
+// parseEndTime is like parseTime but, for date-only inputs, returns
+// end-of-day (23:59:59.999999999) so --to includes the full specified day.
+func parseEndTime(s string) (time.Time, error) {
+	t, err := parseTime(s)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if isDateOnly(s) {
+		y, m, d := t.Date()
+		return time.Date(y, m, d, 23, 59, 59, 999999999, t.Location()), nil
+	}
+	return t, nil
 }
 
 func parseTime(s string) (time.Time, error) {

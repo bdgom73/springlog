@@ -242,13 +242,10 @@ func collectLogFiles(root string, allProjects bool) ([]logFile, error) {
 				}
 				files = append(files, lfs...)
 			} else {
-				// Loose log files directly in root → project name from filename
+				// Loose log files directly in root → project name from folder (rootProject)
 				p := filepath.Join(root, e.Name())
 				if isLogFile(p) {
-					name := e.Name()
-					ext := filepath.Ext(name)
-					project := strings.TrimSuffix(name, ext)
-					files = append(files, logFile{Path: p, Project: project})
+					files = append(files, logFile{Path: p, Project: rootProject})
 				}
 			}
 		}
